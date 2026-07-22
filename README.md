@@ -1,115 +1,51 @@
-# Your Module
+# Feature Flags File
 
-[![CI](https://github.com/yourorg/your-module/actions/workflows/ci.yml/badge.svg)](https://github.com/yourorg/your-module/actions)
+[![CI](https://github.com/Muxcore-Media/feature-flags-file/actions/workflows/ci.yml/badge.svg)](https://github.com/Muxcore-Media/feature-flags-file/actions)
 [![Go Version](https://img.shields.io/badge/Go-1.26-blue)](https://go.dev/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
 
-**One-line description of what your module does.**
+**YAML file-backed feature flag provider with SIGHUP reload.**
 
-A MuxCore sidecar module that does X. Without this module, core can't do Y.
+A MuxCore sidecar module that serves feature flags from a local YAML file (`IsEnabled` / `GetVariant`). Send `SIGHUP` to reload without restart. Provides the `feature.flags` capability.
 
 ---
 
 ## How It Works
 
 ```
-Client request ──→ your-module ──→ muxcored
-                     │
-                     ▼
-              Does the thing
+Module request ──→ feature-flags-file (gRPC) ──→ flags.yaml
+                              ↑
+                         SIGHUP reload
 ```
 
-### Key concept 1
-
-Explanation.
-
-### Key concept 2
-
-Explanation.
+Missing flags fall back to the caller-supplied default value.
 
 ---
 
 ## Configuration
 
-### CLI Flags
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--flag-name` | value | Description |
-
-### Environment Variables
-
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `YOUR_MODULE_ADDR` | `:9400` | Listen address |
+| `FEATURE_FLAGS_FILE` | `flags.yaml` | Path to YAML feature-flag file |
+| gRPC listen | `:9402` | Feature-flags gRPC address |
+| HTTP listen | `:9403` | Health/HTTP listen address |
 
 ---
 
 ## Quick Start
 
 ```bash
-# Build
 make build
 
-# Run against local core (dev mode)
 export MUXCORE_INSECURE_DISABLE_TLS=true
-./your-module --muxcore-mesh-addr localhost:9090
+./feature-flags-file --muxcore-mesh-addr localhost:9090
 ```
 
 ---
 
-## Deployment
+## Capability
 
-### Docker
-
-```bash
-make docker
-docker run -d --restart=unless-stopped \
-  -e MUXCORE_GRPC_ADDR=core:9090 \
-  ghcr.io/yourorg/your-module:latest
-```
-
-### docker-compose
-
-```bash
-docker compose -f deploy/docker-compose.yml up
-```
-
-### systemd
-
-```bash
-sudo cp deploy/systemd/muxcore-module.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now muxcore-module
-```
-
----
-
-## Development
-
-```bash
-make dev      # run in dev mode
-make test     # run tests
-make lint     # golangci-lint
-make fmt      # format code
-```
-
-### Integration Tests
-
-```bash
-# Start core in dev mode, then:
-MUXCORE_GRPC_ADDR=localhost:9090 go test -tags=integration -race -count=1 ./test/
-```
-
----
-
-## Implementation
-
-- Registers with capabilities: `"your.capability"`
-- Implements `contracts.YourContract`
-- Uses `contracts.DatabaseProvider` for persistence
-
----
+`feature.flags` — File-backed feature flags
 
 ## License
 
