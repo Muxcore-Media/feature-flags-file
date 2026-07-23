@@ -10,7 +10,7 @@
 
 | Contract | Capability | Status |
 |----------|-----------|--------|
-| —        | —         | Planned |
+| FeatureFlagProvider | `feature.flags` | Current |
 
 ## Breaking Changes
 

@@ -6,7 +6,7 @@
 
 **YAML file-backed feature flag provider with SIGHUP reload.**
 
-A MuxCore sidecar module that serves feature flags from a local YAML file (`IsEnabled` / `GetVariant`). Send `SIGHUP` to reload without restart. Provides the `feature.flags` capability.
+A MuxCore sidecar module that serves feature flags from a local YAML file (`IsEnabled` / `GetVariant`). Send `SIGHUP` to reload without restart. Provides the `feature.flags` capability (`FeatureFlagProvider`).
 
 ---
 
@@ -20,15 +20,26 @@ Module request ──→ feature-flags-file (gRPC) ──→ flags.yaml
 
 Missing flags fall back to the caller-supplied default value.
 
+### flags.yaml format
+
+```yaml
+my-feature:
+  default: true
+  variant: "on"
+experiment-a:
+  default: false
+  variant: "control"
+```
+
 ---
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `FEATURE_FLAGS_FILE` | `flags.yaml` | Path to YAML feature-flag file |
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `FEATURE_FLAGS_FILE` (env) | `flags.yaml` | Path to YAML feature-flag file |
 | gRPC listen | `:9402` | Feature-flags gRPC address |
-| HTTP listen | `:9403` | Health/HTTP listen address |
+| HTTP listen | `:9403` | Health endpoint (`GET /health`) |
 
 ---
 
@@ -45,7 +56,7 @@ export MUXCORE_INSECURE_DISABLE_TLS=true
 
 ## Capability
 
-`feature.flags` — File-backed feature flags
+`feature.flags` — File-backed feature flags (`FeatureFlagProvider`)
 
 ## License
 
