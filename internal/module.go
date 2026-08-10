@@ -74,11 +74,11 @@ func (m *Module) Info() contracts.ModuleInfo {
 	return contracts.ModuleInfo{
 		ID:           m.id,
 		Name:         "Feature Flags File",
-		Version:      "0.1.1",
+		Version:      "0.1.2",
 		Roles:        []string{"infrastructure"},
 		Description:  "YAML/JSON file-backed feature flag provider with SIGHUP reload",
 		Author:       "MuxCore",
-		Capabilities: []string{contracts.CapabilityFeatureFlags},
+		Capabilities: []string{contracts.CapabilityFeatureFlags, "settings"},
 		HTTPAddr:     m.grpcAddr,
 	}
 }
