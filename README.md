@@ -39,7 +39,7 @@ experiment-a:
 |---------|---------|-------------|
 | `FEATURE_FLAGS_FILE` (env) | `flags.yaml` | Path to YAML feature-flag file |
 | gRPC listen | `:9402` | Feature-flags gRPC address |
-| HTTP listen | `:9403` | Health endpoint (`GET /health`) |
+| HTTP listen | `:9404` | Health endpoint (`GET /health`) |
 
 ---
 

@@ -34,6 +34,7 @@ type Module struct {
 	id       string
 	grpcAddr string
 	httpAddr string
+	sighupCh chan os.Signal
 }
 
 type Config struct {
@@ -54,7 +55,7 @@ func NewModule(cfg Config) *Module {
 		cfg.GRPCAddr = ":9402"
 	}
 	if cfg.HTTPAddr == "" {
-		cfg.HTTPAddr = ":9403"
+		cfg.HTTPAddr = ":9404"
 	}
 	if v := os.Getenv("FEATURE_FLAGS_FILE"); v != "" {
 		cfg.FilePath = v
@@ -119,6 +120,7 @@ func (m *Module) Start(ctx context.Context) error {
 	}()
 
 	sighupCh := make(chan os.Signal, 1)
+	m.sighupCh = sighupCh
 	signal.Notify(sighupCh, syscall.SIGHUP)
 	go func() {
 		for range sighupCh {
@@ -132,6 +134,9 @@ func (m *Module) Start(ctx context.Context) error {
 }
 
 func (m *Module) Stop(ctx context.Context) error {
+	if m.sighupCh != nil {
+		signal.Stop(m.sighupCh)
+	}
 	if m.grpcSrv != nil {
 		m.grpcSrv.GracefulStop()
 	}
