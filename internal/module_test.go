@@ -143,6 +143,35 @@ func TestReloadUpdatesFlags(t *testing.T) {
 	}
 }
 
+func TestSettingsFlagsFileReload(t *testing.T) {
+	dir := t.TempDir()
+	pathA := writeFlags(t, dir, "a:\n  default: true\n")
+	pathB := filepath.Join(dir, "flags-b.yaml")
+	if err := os.WriteFile(pathB, []byte("b:\n  default: true\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	m := NewModule(Config{FilePath: pathA, GRPCAddr: "127.0.0.1:0", HTTPAddr: "127.0.0.1:0"})
+	ctx := context.Background()
+	if err := m.Init(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defs := m.Settings()
+	if len(defs) != 1 || defs[0].Key != "flags_file" || defs[0].Value != pathA {
+		t.Fatalf("Settings() = %+v", defs)
+	}
+	if err := m.UpdateSetting("flags_file", pathB); err != nil {
+		t.Fatal(err)
+	}
+	en, err := m.IsEnabled(ctx, &featureflagsv1.IsEnabledRequest{Flag: "b"})
+	if err != nil || !en.GetEnabled() {
+		t.Fatalf("flag b after path switch: enabled=%v err=%v", en.GetEnabled(), err)
+	}
+	enA, _ := m.IsEnabled(ctx, &featureflagsv1.IsEnabledRequest{Flag: "a", DefaultValue: false})
+	if enA.GetEnabled() {
+		t.Fatal("flag a should be gone after switching files")
+	}
+}
+
 func TestSIGHUPReloadsFlags(t *testing.T) {
 	dir := t.TempDir()
 	path := writeFlags(t, dir, "sighup:\n  default: false\n")
