@@ -1,9 +1,14 @@
 {
   "name": "Feature Flags File",
   "description": "YAML file-backed feature flag provider with SIGHUP reload",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "author": "MuxCore",
-  "roles": ["infrastructure"],
-  "capabilities": ["feature.flags"],
+  "roles": [
+    "infrastructure"
+  ],
+  "capabilities": [
+    "feature.flags",
+    "settings"
+  ],
   "contracts": []
 }
