@@ -16,6 +16,7 @@ import (
 
 	"github.com/Muxcore-Media/core/pkg/contracts"
 	featureflagsv1 "github.com/Muxcore-Media/core/proto/gen/muxcore/featureflags/v1"
+	modulesdk "github.com/Muxcore-Media/core/sdk/go/module"
 )
 
 type flagRule struct {
@@ -73,7 +74,7 @@ func (m *Module) Info() contracts.ModuleInfo {
 	return contracts.ModuleInfo{
 		ID:           m.id,
 		Name:         "Feature Flags File",
-		Version:      "0.1.0",
+		Version:      "0.1.1",
 		Roles:        []string{"infrastructure"},
 		Description:  "YAML/JSON file-backed feature flag provider with SIGHUP reload",
 		Author:       "MuxCore",
@@ -102,6 +103,7 @@ func (m *Module) Init(ctx context.Context) error {
 func (m *Module) Start(ctx context.Context) error {
 	m.grpcSrv = grpc.NewServer()
 	featureflagsv1.RegisterFeatureFlagsServiceServer(m.grpcSrv, m)
+	modulesdk.RegisterSettings(m.grpcSrv, m.id, m)
 	go func() {
 		slog.Info("feature-flags gRPC started", "addr", m.grpcAddr)
 		if err := m.grpcSrv.Serve(m.grpcLis); err != nil {
@@ -149,7 +151,10 @@ func (m *Module) Health(ctx context.Context) error {
 }
 
 func (m *Module) loadFile() error {
-	data, err := os.ReadFile(m.filePath)
+	m.mu.RLock()
+	path := m.filePath
+	m.mu.RUnlock()
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("read flags file: %w", err)
 	}
@@ -160,7 +165,7 @@ func (m *Module) loadFile() error {
 	m.mu.Lock()
 	m.flags = flags
 	m.mu.Unlock()
-	slog.Info("feature-flags loaded", "path", m.filePath, "count", len(flags))
+	slog.Info("feature-flags loaded", "path", path, "count", len(flags))
 	return nil
 }
 
