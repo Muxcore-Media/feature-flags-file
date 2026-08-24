@@ -72,15 +72,15 @@ func NewModule(cfg Config) *Module {
 
 func (m *Module) Info() contracts.ModuleInfo {
 	return contracts.ModuleInfo{
-		ID:           m.id,
-		Name:         "Feature Flags File",
-		Version:      "0.1.3",
-		Roles:        []string{"infrastructure"},
-		Description:  "YAML/JSON file-backed feature flag provider with SIGHUP reload",
-		Author:       "MuxCore",
-		Capabilities: []string{contracts.CapabilityFeatureFlags, "settings"},
+		ID:             m.id,
+		Name:           "Feature Flags File",
+		Version:        "0.1.3",
+		Roles:          []string{"infrastructure"},
+		Description:    "YAML/JSON file-backed feature flag provider with SIGHUP reload",
+		Author:         "MuxCore",
+		Capabilities:   []string{contracts.CapabilityFeatureFlags, "settings"},
 		MinCoreVersion: "0.5.0",
-		HTTPAddr:     m.grpcAddr,
+		HTTPAddr:       m.grpcAddr,
 	}
 }
 
@@ -115,11 +115,11 @@ func (m *Module) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 	go func() {
 		slog.Info("feature-flags HTTP started", "addr", m.httpAddr)
-		http.Serve(m.httpLis, mux)
+		_ = http.Serve(m.httpLis, mux)
 	}()
 
 	sighupCh := make(chan os.Signal, 1)
