@@ -1,0 +1,17 @@
+# Example feature flags for feature-flags-file.
+# Copy or point FEATURE_FLAGS_FILE at this file.
+
+beta-ui:
+  default: false
+  variant: "control"
+  percent: 25
+  enabled_for:
+    - admin-ui
+
+dark-mode:
+  default: true
+  variant: "on"
+
+experiment-a:
+  default: false
+  variant: "a"

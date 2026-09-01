@@ -18,12 +18,16 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "9402"
+      - "9402:9402"
+      - "9404:9404"
+    volumes:
+      - ./flags.yaml:/data/flags.yaml:ro
     environment:
       MUXCORE_GRPC_ADDR: core:9090
       MUXCORE_INSECURE_DISABLE_TLS: "true"
       MUXCORE_LOG_LEVEL: debug
       MUXCORE_MODULE_ID: feature-flags-file
+      FEATURE_FLAGS_FILE: /data/flags.yaml
     depends_on:
       core:
         condition: service_healthy

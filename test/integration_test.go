@@ -1,57 +1,101 @@
-//go:build integration
-
 package test
 
 import (
 	"context"
+	"net"
 	"os"
+	"path/filepath"
 	"testing"
-	"time"
 
-	modulev1 "github.com/Muxcore-Media/core/proto/gen/muxcore/module/v1"
+	featureflagsv1 "github.com/Muxcore-Media/core/proto/gen/muxcore/featureflags/v1"
+	"github.com/Muxcore-Media/feature-flags-file/internal"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
-func TestModuleRegistration(t *testing.T) {
-	addr := os.Getenv("MUXCORE_GRPC_ADDR")
-	if addr == "" {
-		t.Skip("MUXCORE_GRPC_ADDR not set")
+func TestFeatureFlagsServiceGRPC(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "flags.yaml")
+	if err := os.WriteFile(path, []byte(`
+grpc-flag:
+  default: true
+  variant: "v2"
+`), 0600); err != nil {
+		t.Fatal(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	mod := internal.NewModule(internal.Config{
+		FilePath: path,
+		GRPCAddr: "127.0.0.1:0",
+		HTTPAddr: "127.0.0.1:0",
+	})
+	ctx := context.Background()
+	if err := mod.Init(ctx); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	if err := mod.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	t.Cleanup(func() { _ = mod.Stop(ctx) })
 
-	conn, err := grpc.DialContext(ctx, addr,
+	conn, err := grpc.NewClient(mod.GRPCListenAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	)
 	if err != nil {
-		t.Fatalf("dial core: %v", err)
+		t.Fatalf("dial: %v", err)
 	}
-	defer conn.Close()
+	t.Cleanup(func() { _ = conn.Close() })
 
-	reg := modulev1.NewModuleRegistrationClient(conn)
-	resp, err := reg.Register(ctx, &modulev1.RegisterRequest{
-		ModuleId: "test-module",
-		ModuleInfo: &modulev1.ModuleInfo{
-			Id:           "test-module",
-			Name:         "Test Module",
-			Version:      "0.0.0-test",
-			Roles:        []string{"test"},
-			Capabilities: []string{"test"},
-		},
+	client := featureflagsv1.NewFeatureFlagsServiceClient(conn)
+	rpcCtx := metadata.NewOutgoingContext(ctx, metadata.Pairs("x-caller-id", "test-client"))
+
+	en, err := client.IsEnabled(rpcCtx, &featureflagsv1.IsEnabledRequest{
+		Flag:         "grpc-flag",
+		DefaultValue: false,
 	})
 	if err != nil {
-		t.Fatalf("register: %v", err)
+		t.Fatalf("IsEnabled: %v", err)
 	}
-	if !resp.Accepted {
-		t.Fatalf("registration rejected: %s", resp.Error)
+	if !en.GetEnabled() {
+		t.Fatal("grpc-flag should be enabled")
 	}
-	t.Logf("registered, mesh_addr=%s node_id=%s", resp.MeshAddr, resp.NodeId)
 
-	_, err = reg.Unregister(ctx, &modulev1.UnregisterRequest{ModuleId: "test-module"})
+	variant, err := client.GetVariant(rpcCtx, &featureflagsv1.GetVariantRequest{
+		Flag:         "grpc-flag",
+		DefaultValue: "control",
+	})
 	if err != nil {
-		t.Fatalf("unregister: %v", err)
+		t.Fatalf("GetVariant: %v", err)
+	}
+	if variant.GetVariant() != "v2" {
+		t.Fatalf("variant = %q want v2", variant.GetVariant())
+	}
+
+	missing, err := client.IsEnabled(rpcCtx, &featureflagsv1.IsEnabledRequest{
+		Flag:         "missing",
+		DefaultValue: true,
+	})
+	if err != nil {
+		t.Fatalf("IsEnabled missing: %v", err)
+	}
+	if !missing.GetEnabled() {
+		t.Fatal("missing flag should use default_value")
+	}
+}
+
+func TestFeatureFlagsServiceDialRequiresListener(t *testing.T) {
+	mod := internal.NewModule(internal.Config{
+		FilePath: filepath.Join(t.TempDir(), "flags.yaml"),
+		GRPCAddr: "127.0.0.1:0",
+		HTTPAddr: "127.0.0.1:0",
+	})
+	ctx := context.Background()
+	if err := mod.Init(ctx); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	addr := mod.GRPCListenAddr()
+	if _, _, err := net.SplitHostPort(addr); err != nil {
+		t.Fatalf("listen addr = %q: %v", addr, err)
 	}
 }

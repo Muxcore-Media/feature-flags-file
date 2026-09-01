@@ -7,8 +7,8 @@ MuxCore sidecar module (`feature-flags-file`). Workspace deploy and SSH: [`../AG
 | Field | Value |
 |-------|-------|
 | Directory | `feature-flags-file` |
-| Capabilities | see muxcore.json |
-| Contracts | none declared |
+| Capabilities | `feature.flags`, `settings` |
+| Contracts | `FeatureFlagProvider` (`muxcore.json`) |
 
 ## Agent rules
 
@@ -22,5 +22,9 @@ MuxCore sidecar module (`feature-flags-file`). Workspace deploy and SSH: [`../AG
 
 ```bash
 cd feature-flags-file
-go test ./...
+nix-shell -p go golangci-lint --run 'go test ./... && golangci-lint run ./...'
 ```
+
+## MVP soak
+
+Enable with `MVP_ENABLE_FEATURE_FLAGS=1` in `_mvp/.env`. Flags file defaults to `$DATA/feature-flags/flags.yaml`.
