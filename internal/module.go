@@ -12,11 +12,13 @@ import (
 	"syscall"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"gopkg.in/yaml.v3"
 
 	"github.com/Muxcore-Media/core/pkg/contracts"
 	featureflagsv1 "github.com/Muxcore-Media/core/proto/gen/muxcore/featureflags/v1"
 	modulesdk "github.com/Muxcore-Media/core/sdk/go/module"
+	"github.com/Muxcore-Media/feature-flags-file/internal/grpctls"
 )
 
 type flagRule struct {
@@ -53,7 +55,7 @@ func NewModule(cfg Config) *Module {
 		cfg.FilePath = "flags.yaml"
 	}
 	if cfg.GRPCAddr == "" {
-		cfg.GRPCAddr = ":9402"
+		cfg.GRPCAddr = "127.0.0.1:9402"
 	}
 	if cfg.HTTPAddr == "" {
 		cfg.HTTPAddr = ":9404"
@@ -102,7 +104,21 @@ func (m *Module) Init(ctx context.Context) error {
 }
 
 func (m *Module) Start(ctx context.Context) error {
-	m.grpcSrv = grpc.NewServer()
+	var grpcOpts []grpc.ServerOption
+	tlsCfg, err := grpctls.ServerConfig(m.filePath)
+	if err != nil {
+		return fmt.Errorf("gRPC TLS: %w", err)
+	}
+	if tlsCfg != nil {
+		grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsCfg)))
+		slog.Info("feature-flags-file gRPC TLS enabled", "addr", m.grpcAddr)
+	} else {
+		slog.Warn("feature-flags-file gRPC listening without TLS (dev only)",
+			"addr", m.grpcAddr,
+			"hint", "unset MUXCORE_INSECURE_DISABLE_TLS for production",
+		)
+	}
+	m.grpcSrv = grpc.NewServer(grpcOpts...)
 	featureflagsv1.RegisterFeatureFlagsServiceServer(m.grpcSrv, m)
 	modulesdk.RegisterSettings(m.grpcSrv, m.id, m)
 	go func() {

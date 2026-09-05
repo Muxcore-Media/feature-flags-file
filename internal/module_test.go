@@ -20,12 +20,13 @@ func TestModuleInfo(t *testing.T) {
 	if info.Version == "" {
 		t.Error("module version must not be empty")
 	}
-	if info.HTTPAddr != ":9402" {
+	if info.HTTPAddr != "127.0.0.1:9402" {
 		t.Errorf("gRPC default addr = %q", info.HTTPAddr)
 	}
 }
 
 func TestModuleLifecycle(t *testing.T) {
+	t.Setenv("MUXCORE_INSECURE_DISABLE_TLS", "true")
 	m := NewModule(Config{GRPCAddr: "127.0.0.1:0", HTTPAddr: "127.0.0.1:0"})
 	ctx := context.Background()
 
@@ -172,7 +173,29 @@ func TestSettingsFlagsFileReload(t *testing.T) {
 	}
 }
 
+func TestModuleLifecycleTLS(t *testing.T) {
+	t.Setenv("MUXCORE_INSECURE_DISABLE_TLS", "")
+	t.Setenv("MUXCORE_GRPC_INSECURE", "")
+
+	dir := t.TempDir()
+	path := writeFlags(t, dir, "tls:\n  default: true\n")
+	t.Setenv("FEATURE_FLAGS_TLS_DIR", dir)
+
+	m := NewModule(Config{FilePath: path, GRPCAddr: "127.0.0.1:0", HTTPAddr: "127.0.0.1:0"})
+	ctx := context.Background()
+	if err := m.Init(ctx); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	if err := m.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if err := m.Stop(ctx); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+}
+
 func TestSIGHUPReloadsFlags(t *testing.T) {
+	t.Setenv("MUXCORE_INSECURE_DISABLE_TLS", "true")
 	dir := t.TempDir()
 	path := writeFlags(t, dir, "sighup:\n  default: false\n")
 	m := NewModule(Config{FilePath: path, GRPCAddr: "127.0.0.1:0", HTTPAddr: "127.0.0.1:0"})
