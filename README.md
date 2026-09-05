@@ -38,8 +38,10 @@ experiment-a:
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `FEATURE_FLAGS_FILE` (env) | `flags.yaml` | Path to YAML feature-flag file |
-| gRPC listen | `:9402` | Feature-flags gRPC address |
+| gRPC listen | `127.0.0.1:9402` | Feature-flags gRPC address (loopback by default) |
 | HTTP listen | `:9404` | Health endpoint (`GET /health`) |
+
+gRPC uses **TLS by default**. Auto-generated dev certificates are stored alongside the flags file (or under `FEATURE_FLAGS_TLS_DIR`). Set `MUXCORE_INSECURE_DISABLE_TLS=true` for plaintext dev only. Override certs with `MUXCORE_TLS_CERT` / `MUXCORE_TLS_KEY` or `FEATURE_FLAGS_TLS_CERT` / `FEATURE_FLAGS_TLS_KEY`.
 
 ---
 
