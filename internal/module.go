@@ -18,6 +18,7 @@ import (
 	"github.com/Muxcore-Media/core/pkg/contracts"
 	featureflagsv1 "github.com/Muxcore-Media/core/proto/gen/muxcore/featureflags/v1"
 	modulesdk "github.com/Muxcore-Media/core/sdk/go/module"
+	manifest "github.com/Muxcore-Media/feature-flags-file"
 	"github.com/Muxcore-Media/feature-flags-file/internal/grpctls"
 )
 
@@ -76,7 +77,7 @@ func (m *Module) Info() contracts.ModuleInfo {
 	return contracts.ModuleInfo{
 		ID:             m.id,
 		Name:           "Feature Flags File",
-		Version:        "0.1.3",
+		Version:        modulesdk.ManifestVersion(manifest.ManifestJSON),
 		Roles:          []string{"infrastructure"},
 		Description:    "YAML/JSON file-backed feature flag provider with SIGHUP reload",
 		Author:         "MuxCore",

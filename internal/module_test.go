@@ -9,6 +9,8 @@ import (
 	"time"
 
 	featureflagsv1 "github.com/Muxcore-Media/core/proto/gen/muxcore/featureflags/v1"
+	modulesdk "github.com/Muxcore-Media/core/sdk/go/module"
+	manifest "github.com/Muxcore-Media/feature-flags-file"
 )
 
 func TestModuleInfo(t *testing.T) {
@@ -17,8 +19,8 @@ func TestModuleInfo(t *testing.T) {
 	if info.ID == "" {
 		t.Error("module ID must not be empty")
 	}
-	if info.Version == "" {
-		t.Error("module version must not be empty")
+	if info.Version != modulesdk.ManifestVersion(manifest.ManifestJSON) {
+		t.Errorf("version = %q, want manifest version %q", info.Version, modulesdk.ManifestVersion(manifest.ManifestJSON))
 	}
 	if info.HTTPAddr != "127.0.0.1:9402" {
 		t.Errorf("gRPC default addr = %q", info.HTTPAddr)
